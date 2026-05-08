@@ -40,16 +40,16 @@
     body::before {
       content: "";
       position: fixed;
-      inset: -28px;
+      inset: -12px;
       z-index: 0;
       background-image: var(--bg-image);
       background-size: cover;
       background-position: center center;
       background-repeat: no-repeat;
-      filter: blur(5px);
-      transform: scale(1.03);
+      filter: blur(3px);
+      transform: scale(1.012);
       transform-origin: center;
-      opacity: .92;
+      opacity: .42;
       pointer-events: none;
     }
     body::after {
@@ -57,7 +57,11 @@
       position: fixed;
       inset: 0;
       z-index: 0;
-      background: rgba(255,255,255,.14);
+      background-image: linear-gradient(rgba(255,255,255,.10), rgba(255,255,255,.10)), var(--bg-image);
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      opacity: .72;
       pointer-events: none;
     }
     #app { position: fixed; inset: 0; z-index: 1; }
@@ -109,6 +113,71 @@
       display: none;
       backdrop-filter: blur(6px);
     }
+
+    #sparkleLayer {
+      position: fixed;
+      inset: 0;
+      z-index: 45;
+      pointer-events: none;
+      overflow: hidden;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .pixel-sparkle {
+      --dx: 0px;
+      --dy: 0px;
+      --dx-mid: 0px;
+      --dy-mid: 0px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 4px;
+      background: #fff;
+      opacity: 0;
+      transform: translate(-50%, -50%) translate(0, 0) scale(.2) rotate(0deg);
+      animation: pixelSparkleBurst 620ms steps(6, end) forwards;
+      filter: drop-shadow(0 0 3px rgba(255,255,255,.92)) drop-shadow(0 1px 0 rgba(130,130,130,.22));
+      will-change: transform, opacity;
+    }
+    .pixel-sparkle::before,
+    .pixel-sparkle::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: #fff;
+      transform: translate(-50%, -50%);
+    }
+    .pixel-sparkle::before { width: 18px; height: 4px; }
+    .pixel-sparkle::after { width: 4px; height: 18px; }
+    .pixel-sparkle.sparkle-s { width: 3px; height: 3px; }
+    .pixel-sparkle.sparkle-s::before { width: 12px; height: 3px; }
+    .pixel-sparkle.sparkle-s::after { width: 3px; height: 12px; }
+    .pixel-sparkle.sparkle-l { width: 5px; height: 5px; }
+    .pixel-sparkle.sparkle-l::before { width: 24px; height: 5px; }
+    .pixel-sparkle.sparkle-l::after { width: 5px; height: 24px; }
+    @keyframes pixelSparkleBurst {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translate(0, 0) scale(.2) rotate(0deg);
+      }
+      14% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translate(0, 0) scale(1.2) rotate(0deg);
+      }
+      58% {
+        opacity: .95;
+        transform: translate(-50%, -50%) translate(var(--dx-mid), var(--dy-mid)) scale(1) rotate(45deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0) rotate(90deg);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pixel-sparkle { animation-duration: 260ms; }
+    }
     #credit {
       position: fixed;
       right: 18px;
@@ -130,6 +199,7 @@
   <button id="switchBtn" type="button" aria-label="민트 버전으로 전환">🩵</button>
   <div id="fallbackNotice">model loading issue</div>
   <div id="credit">© @kimjongdal._/<br>made by @1015_53nu</div>
+  <div id="sparkleLayer" aria-hidden="true"></div>
 
   <script type="module">
     import * as THREE from "three";
@@ -155,8 +225,10 @@
     const app = document.querySelector('#app');
     const switchBtn = document.querySelector('#switchBtn');
     const notice = document.querySelector('#fallbackNotice');
+    const sparkleLayer = document.querySelector('#sparkleLayer');
     test(app instanceof HTMLElement, '#app not found');
     test(switchBtn instanceof HTMLButtonElement, '#switchBtn not found');
+    test(sparkleLayer instanceof HTMLElement, '#sparkleLayer not found');
 
     const THEMES = {
       pink: {
@@ -505,6 +577,46 @@
         switchBtn.disabled = false;
       }
     }
+
+
+    function createPixelSparkleBurst(x, y) {
+      const sparkleCount = 12;
+      const center = document.createElement('span');
+      center.className = 'pixel-sparkle sparkle-l';
+      center.style.left = `${x}px`;
+      center.style.top = `${y}px`;
+      center.style.setProperty('--dx', '0px');
+      center.style.setProperty('--dy', '0px');
+      center.style.setProperty('--dx-mid', '0px');
+      center.style.setProperty('--dy-mid', '0px');
+      center.style.animationDuration = '440ms';
+      sparkleLayer.appendChild(center);
+      center.addEventListener('animationend', () => center.remove(), { once: true });
+
+      for (let i = 0; i < sparkleCount; i++) {
+        const angle = (Math.PI * 2 * i) / sparkleCount + (Math.random() - 0.5) * 0.35;
+        const distance = 14 + Math.random() * 34;
+        const dx = Math.cos(angle) * distance;
+        const dy = Math.sin(angle) * distance;
+        const sparkle = document.createElement('span');
+        sparkle.className = `pixel-sparkle ${i % 4 === 0 ? 'sparkle-l' : i % 2 === 0 ? 'sparkle-s' : ''}`;
+        sparkle.style.left = `${x}px`;
+        sparkle.style.top = `${y}px`;
+        sparkle.style.setProperty('--dx', `${dx.toFixed(1)}px`);
+        sparkle.style.setProperty('--dy', `${dy.toFixed(1)}px`);
+        sparkle.style.setProperty('--dx-mid', `${(dx * 0.72).toFixed(1)}px`);
+        sparkle.style.setProperty('--dy-mid', `${(dy * 0.72).toFixed(1)}px`);
+        sparkle.style.animationDelay = `${Math.random() * 65}ms`;
+        sparkle.style.animationDuration = `${520 + Math.random() * 220}ms`;
+        sparkleLayer.appendChild(sparkle);
+        sparkle.addEventListener('animationend', () => sparkle.remove(), { once: true });
+      }
+    }
+
+    addEventListener('pointerdown', (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      createPixelSparkleBurst(event.clientX, event.clientY);
+    }, { passive: true });
 
     switchBtn.addEventListener('click', () => {
       setVersion(currentVersion === 'pink' ? 'mint' : 'pink');
